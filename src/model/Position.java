@@ -1,6 +1,8 @@
 package model;
 
 import java.sql.Time;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.json.JSONObject;
 
@@ -12,13 +14,22 @@ public class Position {
 	private String location;
 	private String type;
 	private String description;
+	public List<Keyword> getKeywords() {
+		return keywords;
+	}
+
+	public void setKeywords(List<Keyword> keywords) {
+		this.keywords = keywords;
+	}
+
 	private String sanitizedDescription;
 	private String applyLink;
 	private String company;
 	private String companyUrl;
 	private String companyLogo;
 	private String url;
-
+	private List<Keyword> keywords;
+	
 	/**
 	 * Construct a Position object from a JSONObject if possible.
 	 */
@@ -37,11 +48,19 @@ public class Position {
 			this.companyUrl = jsonObject.getString("company_url");
 			this.companyLogo = jsonObject.getString("company_logo");
 			this.url = jsonObject.getString("url");
+			this.keywords = KeywordExtractor.extract(sanitizedDescription);
 		} catch (Exception e) {
 			System.out
 					.println("Exception in converting a JSON object to a Position object");
 			e.printStackTrace();
 		}
+	}
+	
+	/**
+	 * Rebuild a Position object from DB.
+	 */
+	public Position() {
+		setKeywords("something stored in db for keywords");
 	}
 
 	/**
@@ -60,6 +79,30 @@ public class Position {
 	@Override
 	public int hashCode() {
 		return id.hashCode();
+	}
+	
+	/**
+	 * Convert a list of Keywords to a formated string. 
+	 */
+	public String convertKeywordsToString() {
+		StringBuffer sb = new StringBuffer();
+		for (int i = 0; i < keywords.size(); i ++) {
+			Keyword keyword = keywords.get(i);
+			sb.append(keyword.toString());
+			if (i != keywords.size() - 1) {
+				// Add a semicolon to seperate keywords.
+				sb.append(";");
+			}
+		}
+		return sb.toString();
+	}
+	
+	private void setKeywords(String keywordStr) {
+		String[] args = keywordStr.split(";");
+		this.keywords = new ArrayList<>();
+		for (String arg : args) {
+			this.keywords.add(new Keyword(arg));
+		}
 	}
 
 	public String getId() {
@@ -149,7 +192,7 @@ public class Position {
 	public void setUrl(String url) {
 		this.url = url;
 	}
-	
+
 	public String getSanitizedDescription() {
 		return sanitizedDescription;
 	}
