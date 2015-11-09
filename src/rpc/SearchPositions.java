@@ -4,15 +4,20 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 
+import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import model.Position;
+
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import db.DBConnection;
 import api.github.GitHubConnection;
 
 /**
@@ -27,7 +32,6 @@ public class SearchPositions extends HttpServlet {
 	 */
 	public SearchPositions() {
 		super();
-		// TODO Auto-generated constructor stub
 	}
 
 	/**
@@ -36,7 +40,6 @@ public class SearchPositions extends HttpServlet {
 	 */
 	protected void doGet(HttpServletRequest request,
 			HttpServletResponse response) throws ServletException, IOException {
-		// TODO Auto-generated method stub
 	}
 
 	/**
@@ -56,6 +59,8 @@ public class SearchPositions extends HttpServlet {
 			
 			// Parse input parameters from client.
 			JSONObject input = new JSONObject(jb.toString());
+			ServletContext context = getServletContext();
+			
 			if (input.has("description") && input.has("location")) {
 				String description = input.getString("description");
 				String location = input.getString("location");
@@ -66,9 +71,17 @@ public class SearchPositions extends HttpServlet {
 				response.setContentType("application/json");
 				response.addHeader("Access-Control-Allow-Origin", "*");
 				PrintWriter out = response.getWriter();
-				out.print(GitHubConnection.searchPositions(description, location));
+				JSONArray jsonArray = GitHubConnection.searchPositions(description, location);
+				out.print(jsonArray);
 				out.flush();
 				out.close();
+				
+				DBConnection connection = new DBConnection();
+				for (int i = 0; i < jsonArray.length(); i++){
+					JSONObject jsonObject = jsonArray.getJSONObject(i);
+					Position position = new Position(jsonObject, context);
+					connection.insertPosition(position);
+				}
 			} else {
 				System.err.println("SearchPositions gets an invalid POST request that "
 						+ "does not contain description or location. Return null.");
@@ -80,5 +93,4 @@ public class SearchPositions extends HttpServlet {
 			e.printStackTrace();
 		}
 	}
-
 }

@@ -8,25 +8,29 @@ import java.util.List;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 
+import javax.servlet.ServletContext;
+
 import com.sharethis.textrank.MetricVector;
 import com.sharethis.textrank.TextRank;
 
 public class KeywordExtractor {
 
 	private static TextRank textRank = null;
-	static {
+
+	public KeywordExtractor(ServletContext context) {
+
+		String fullPath = context
+				.getRealPath("/WEB-INF/res");
 		try {
-			textRank = new TextRank(
-					"/Users/weiweich/Documents/Lai/Laiproject/Shifu/textrank/res",
-					"en");
+			textRank = new TextRank(fullPath, "en");
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
 
-	public static List<Keyword> extract(String description) {
+	public List<Keyword> extract(String description) {
 		HashSet<Keyword> keywords = new HashSet<>();
-		
+
 		try {
 			textRank.prepCall(description, true);
 			// wrap the call in a timed task
@@ -37,7 +41,7 @@ public class KeywordExtractor {
 			final Thread thread = new Thread(task);
 			thread.run();
 
-			answer = task.get(15000L, TimeUnit.MILLISECONDS); // timeout in 15 s
+			answer = task.get(10000L, TimeUnit.MILLISECONDS); // timeout in 15 s
 
 			for (MetricVector mv : answer) {
 				if (mv.metric >= TextRank.MIN_NORMALIZED_RANK) {
@@ -45,7 +49,6 @@ public class KeywordExtractor {
 					keywords.add(new Keyword(mv.value.text, mv.metric));
 				}
 			}
-			
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
