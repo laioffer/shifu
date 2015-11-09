@@ -1,6 +1,5 @@
 package model;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import javax.servlet.ServletContext;
@@ -19,7 +18,7 @@ public class Position {
 	private String companyUrl;
 	private String companyLogo;
 	private String url;
-	private List<Keyword> keywords;
+	private List<String> keywords;
 	
 	/**
 	 * Construct a Position object from a JSONObject if possible.
@@ -58,13 +57,6 @@ public class Position {
 			e.printStackTrace();
 		}
 	}
-	
-	/**
-	 * Rebuild a Position object from DB.
-	 */
-	public Position() {
-		setKeywords("something stored in db for keywords");
-	}
 
 	/**
 	 * Both equals and hashCode are useful when we put Position in a HashSet to
@@ -82,30 +74,6 @@ public class Position {
 	@Override
 	public int hashCode() {
 		return id.hashCode();
-	}
-	
-	/**
-	 * Convert a list of Keywords to a formated string. 
-	 */
-	public String convertKeywordsToString() {
-		StringBuffer sb = new StringBuffer();
-		for (int i = 0; i < keywords.size(); i ++) {
-			Keyword keyword = keywords.get(i);
-			sb.append(keyword.toString());
-			if (i != keywords.size() - 1) {
-				// Add a semicolon to separate keywords.
-				sb.append(";");
-			}
-		}
-		return sb.toString();
-	}
-	
-	private void setKeywords(String keywordStr) {
-		String[] args = keywordStr.split(";");
-		this.keywords = new ArrayList<>();
-		for (String arg : args) {
-			this.keywords.add(new Keyword(arg));
-		}
 	}
 
 	public String getId() {
@@ -188,11 +156,11 @@ public class Position {
 		this.sanitizedDescription = sanitizedDescription;
 	}
 	
-	public List<Keyword> getKeywords() {
+	public List<String> getKeywords() {
 		return keywords;
 	}
 
-	public void setKeywords(List<Keyword> keywords) {
+	public void setKeywords(List<String> keywords) {
 		this.keywords = keywords;
 	}
 }

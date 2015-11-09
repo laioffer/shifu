@@ -3,25 +3,23 @@ package db;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
+import model.Keyword;
 import model.Position;
-
-import org.json.JSONArray;
-import org.json.JSONObject;
 
 /**
  * Performs all DB queries
  */
 public class DBConnection {
 	private Connection conn;
-	private static final int MAX_RECOMMENDED_POSITIONS = 50;
-	private static final int MIN_RECOMMENDED_POSITIONS = 3;
 
 	public DBConnection() {
 		try {
@@ -41,121 +39,116 @@ public class DBConnection {
 			}
 		}
 	}
-
-	public void insertPosition(Position position) {
+	
+	private void executeUpdateStatement(String query) {
 		try {
 			if (conn == null) {
 				return;
 			}
 			Statement stmt = conn.createStatement();
-			String sql = "INSERT IGNORE INTO shifu_position " + "VALUES (\""
-					+ position.getId() + "\", \""
-					+ position.getTitle() + "\", \""
-					+ position.getLocation() + "\", \""
-					+ position.getType() + "\", \"" 
-					+ position.getSanitizedDescription() + "\", \""
-					+ position.getApplyLink() + "\", \""
-					+ position.getCompany() + "\", \""
-					+ position.getCompanyUrl() + "\" ,\""
-					+ position.getCompanyLogo() + "\", \"" 
-					+ position.getUrl() + "\", \"" 
-					+ position.convertKeywordsToString() + "\")";
-			System.out.println("\nDBConnection executing query:\n" + sql);
-			stmt.executeUpdate(sql);
+			System.out.println("\nDBConnection executing query:\n" + query);
+			stmt.executeUpdate(query);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
-
-	public void setFavoritePositions(String userId, List<String> positionIds) {
+	
+	private Set<String> executeQueryStatement(String key, String inputKey, String outputKey, String tableName) {
+		Set<String> set = new HashSet<>();
 		try {
 			if (conn == null) {
-				return;
+				return null;
 			}
 			Statement stmt = conn.createStatement();
-			String sql = "";
-			for (String positionId : positionIds) {
-				sql = "INSERT INTO shifu_favorite (`user_id`, `position_id`) VALUES (\""
-						+ userId + "\", \"" + positionId + "\")";
-				stmt.executeUpdate(sql);
+			String sql = "SELECT " + outputKey + " from " + tableName + " WHERE " + inputKey + " =\""
+					+ key + "\"";
+			ResultSet rs = stmt.executeQuery(sql);
+			while (rs.next()) {
+				String result = rs.getString(outputKey);
+				set.add(result);
 			}
+			return set;
 		} catch (Exception e) {
 			e.printStackTrace();
+		}
+		return set;
+	}
+
+	public void insertPosition(Position position) {
+		String sql = "INSERT IGNORE INTO shifu_position " + "VALUES (\""
+				+ position.getId() + "\", \""
+				+ position.getTitle() + "\", \""
+				+ position.getLocation() + "\", \""
+				+ position.getType() + "\", \"" 
+				// May not need to insert sanitized_description if your machine is slow.
+				+ position.getSanitizedDescription() + "\", \""
+				+ position.getApplyLink() + "\", \""
+				+ position.getCompany() + "\", \""
+				+ position.getCompanyUrl() + "\" ,\""
+				+ position.getCompanyLogo() + "\", \"" 
+				+ position.getUrl() + "\", \"" 
+				+ Keyword.convertKeywordsToString(position.getKeywords()) + "\")";
+		executeUpdateStatement(sql);
+	}
+
+	public void setFavoritePositions(String userId, List<String> positionIds) {
+		String sql = "";
+		for (String positionId : positionIds) {
+			sql = "INSERT INTO shifu_favorite (`user_id`, `position_id`) VALUES (\""
+					+ userId + "\", \"" + positionId + "\")";
+			executeUpdateStatement(sql);
 		}
 	}
 
 	public void unsetFavoritePositions(String userId, List<String> positionIds) {
+		String sql = "";
+		for (String positionId : positionIds) {
+			sql = "DELETE FROM shifu_favorite WHERE `user_id`=\"" + userId
+					+ "\" and `position_id` = \"" + positionId + "\"";
+			executeUpdateStatement(sql);
+		}
+	}
+	
+	private Set<String> getFavoritePositions(String userId) {
+		return executeQueryStatement(userId, "user_id", "position_id", "shifu_favorite");
+	}
+	
+	private List<String> getKeywords(String positionId) {
+		Set<String> keywordSet = executeQueryStatement(positionId, "id",
+				"keywords", "shifu_position");
+		for (String keywords : keywordSet) {
+			return Keyword.convertStrToKeywords(keywords);
+		}
+		return null;
+	}
+	
+	public List<Keyword> getFavoriteKeywords(String userId) {
+		List<Keyword> keywords = new ArrayList<>();
 		try {
 			if (conn == null) {
-				return;
+				return keywords;
 			}
-			Statement stmt = conn.createStatement();
-			String sql = "";
+
+			Set<String> positionIds = getFavoritePositions(userId);
+			Map<String, Integer> frequencyMap = new HashMap<>();
 			for (String positionId : positionIds) {
-				sql = "DELETE FROM shifu_favorite WHERE `user_id`=\"" + userId
-						+ "\" and `position_id` = \"" + positionId + "\"";
-				stmt.executeUpdate(sql);
+				for (String keyword : getKeywords(positionId)) {
+					if (!frequencyMap.containsKey(keyword)) {
+						frequencyMap.put(keyword, 0);
+					}
+					frequencyMap.put(keyword, 1 + frequencyMap.get(keyword));
+				}
 			}
+			for (Map.Entry<String, Integer> entry : frequencyMap.entrySet()) {
+				keywords.add(new Keyword(entry.getKey(), entry.getValue()));
+			}
+			Collections.sort(keywords);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+		return keywords;
 	}
 
-	// public JSONArray RecommendRestaurants(String userId) {
-	// try {
-	// if (conn == null) {
-	// return null;
-	// }
-	//
-	// Set<String> visitedRestaurants = getVisitedRestaurants(userId);
-	// Set<String> allCategories = new HashSet<>();// why hashSet?
-	// for (String restaurant : visitedRestaurants) {
-	// allCategories.addAll(getCategories(restaurant));
-	// }
-	// Set<String> allRestaurants = new HashSet<>();
-	// for (String category : allCategories) {
-	// Set<String> set = getBusinessId(category);
-	// allRestaurants.addAll(set);
-	// }
-	// Set<JSONObject> diff = new HashSet<>();
-	// int count = 0;
-	// for (String business_id : allRestaurants) {
-	// // Perform filtering
-	// if (!visitedRestaurants.contains(business_id)) {
-	// diff.add(getRestaurantsById(business_id));
-	// count++;
-	// if (count >= MAX_RECOMMENDED_RESTAURANTS) {
-	// break;
-	// }
-	// }
-	// }
-	//
-	// if (count < MIN_RECOMMENDED_RESTAURANTS) {
-	// allCategories.addAll(getMoreCategories(allCategories));
-	// for (String category : allCategories) {
-	// Set<String> set = getBusinessId(category);
-	// allRestaurants.addAll(set);
-	// }
-	// for (String business_id : allRestaurants) {
-	// if (!visitedRestaurants.contains(business_id)) {
-	// diff.add(getRestaurantsById(business_id));
-	// count++;
-	// if (count >= MAX_RECOMMENDED_RESTAURANTS) {
-	// break;
-	// }
-	// }
-	// }
-	// }
-	//
-	// return new JSONArray(diff);
-	// } catch (Exception e) { /* report an error */
-	// System.out.println(e.getMessage());
-	// }
-	// return null;
-	// }
-
 	public static void main(String[] args) {
-		// This is for test purpose
-		DBConnection conn = new DBConnection();
 	}
 }

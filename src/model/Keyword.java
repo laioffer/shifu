@@ -1,36 +1,17 @@
 package model;
 
-public class Keyword implements Comparable<Keyword> {
-	private String key;
-	private double metric;
+import java.util.ArrayList;
+import java.util.List;
 
-	public Keyword(String key, double metric) {
+public class Keyword implements Comparable<Keyword>{
+	
+	private String key;
+	private int count;
+	
+	public Keyword(String key, int count) {
 		super();
 		this.key = key;
-		this.metric = metric;
-	}
-	
-	/**
-	 * A constructor that can convert a keyword stored in DB to a Keyword object. 
-	 * This keyword is converted from toString().
-	 */
-	public Keyword(String keyword) {
-		String[] args = keyword.split(":");
-		this.key = args[0];
-		this.metric = Double.parseDouble(args[1]);
-	}
-	
-	@Override
-	public String toString() {
-		return this.key + ":" + Double.toString(metric);
-	}
-
-	public double getMetric() {
-		return metric;
-	}
-
-	public void setMetric(double metric) {
-		this.metric = metric;
+		this.count = count;
 	}
 
 	public String getKey() {
@@ -41,11 +22,43 @@ public class Keyword implements Comparable<Keyword> {
 		this.key = key;
 	}
 
-	@Override
-	public int compareTo(Keyword anotherKeyword) {
-		return (int) (this.metric - anotherKeyword.metric);
+	public int getCount() {
+		return count;
+	}
+
+	public void setCount(int count) {
+		this.count = count;
+	}
+
+	/**
+	 * Convert a list of Keywords to a formated string. 
+	 */
+	public static String convertKeywordsToString(List<String> keywords) {
+		StringBuffer sb = new StringBuffer();
+		for (int i = 0; i < keywords.size(); i ++) {
+			String keyword = keywords.get(i);
+			sb.append(keyword);
+			if (i != keywords.size() - 1) {
+				// Add a semicolon to separate keywords.
+				sb.append(";");
+			}
+		}
+		return sb.toString();
 	}
 	
+	public static List<String> convertStrToKeywords(String keywordStr) {
+		String[] args = keywordStr.split(";");
+		List<String> keywords = new ArrayList<>();
+		for (String arg : args) {
+			keywords.add(arg);
+		}
+		return keywords;
+	}
+	
+	/**
+	 * Both equals and hashCode are useful when we put Position in a HashSet to
+	 * avoid duplicate Positions.
+	 */
 	@Override
 	public boolean equals(Object obj) {
 		if (obj instanceof Keyword) {
@@ -58,5 +71,13 @@ public class Keyword implements Comparable<Keyword> {
 	@Override
 	public int hashCode() {
 		return key.hashCode();
+	}
+
+	@Override
+	public int compareTo(Keyword anotherKeyword) {
+		if (this.count != anotherKeyword.count) {
+			return anotherKeyword.count - this.count;
+		}
+		return this.key.compareTo(anotherKeyword.key);
 	}
 }

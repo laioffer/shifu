@@ -2,8 +2,6 @@ package model;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
@@ -28,8 +26,8 @@ public class KeywordExtractor {
 		}
 	}
 
-	public List<Keyword> extract(String description) {
-		HashSet<Keyword> keywords = new HashSet<>();
+	public List<String> extract(String description) {
+		List<String> keywords = new ArrayList<>();
 
 		try {
 			textRank.prepCall(description, true);
@@ -44,17 +42,13 @@ public class KeywordExtractor {
 			answer = task.get(10000L, TimeUnit.MILLISECONDS); // timeout in 15 s
 
 			for (MetricVector mv : answer) {
-				if (mv.metric >= TextRank.MIN_NORMALIZED_RANK) {
-					// Merge duplicate keys as well.
-					keywords.add(new Keyword(mv.value.text, mv.metric));
+				if (mv.metric >= 0.12) {
+					keywords.add(mv.value.text);
 				}
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		// Convert the set of keywords to a sorted list.
-		List<Keyword> sortedKeywords = new ArrayList<>(keywords);
-		Collections.sort(sortedKeywords);
-		return sortedKeywords;
+		return keywords;
 	}
 }
