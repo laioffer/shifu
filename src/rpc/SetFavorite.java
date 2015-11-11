@@ -1,8 +1,6 @@
 package rpc;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -42,21 +40,9 @@ public class SetFavorite extends HttpServlet {
 	 * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse response)
 	 */
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-		StringBuffer jb = new StringBuffer();
-		String line = null;
-		try {
-			BufferedReader reader = request.getReader();
-			while ((line = reader.readLine()) != null) {
-				jb.append(line);
-			}
-			reader.close();
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-
 		try {
 			DBConnection connection = new DBConnection();
-			JSONObject input = new JSONObject(jb.toString());
+			JSONObject input = RpcParser.parseInput(request);
 			if (input.has("user_id") && input.has("favorite")) {
 				String user_id = input.getString("user_id");
 				JSONArray array = input.getJSONArray("favorite");
@@ -68,14 +54,9 @@ public class SetFavorite extends HttpServlet {
 				connection.setFavoritePositions(user_id, favoriteList);
 			}
 
-			response.setContentType("application/json");
-			response.addHeader("Access-Control-Allow-Origin", "*");
-			PrintWriter out = response.getWriter();
-			JSONObject object = new JSONObject();
-			object.put("result", "success");
-			out.print(object);
-			out.flush();
-			out.close();
+			JSONArray array = new JSONArray();
+			array.put("success");
+			RpcParser.parseOutput(response, array);
 		} catch (JSONException e) {
 			e.printStackTrace();
 		}

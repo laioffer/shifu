@@ -1,8 +1,6 @@
 package rpc;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.PrintWriter;
 
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
@@ -48,17 +46,10 @@ public class SearchPositions extends HttpServlet {
 	 */
 	protected void doPost(HttpServletRequest request,
 			HttpServletResponse response) throws ServletException, IOException {
-		StringBuffer jb = new StringBuffer();
-		String line = null;
 		try {
-			BufferedReader reader = request.getReader();
-			while ((line = reader.readLine()) != null) {
-				jb.append(line);
-			}
-			reader.close();
 			
 			// Parse input parameters from client.
-			JSONObject input = new JSONObject(jb.toString());
+			JSONObject input = RpcParser.parseInput(request);
 			ServletContext context = getServletContext();
 			
 			if (input.has("description") && input.has("location")) {
@@ -67,14 +58,10 @@ public class SearchPositions extends HttpServlet {
 				System.out
 						.println("SearchPositions gets a POST request with description="
 								+ description + " and location=" + location);
+				
 				// Fetch Positions.
-				response.setContentType("application/json");
-				response.addHeader("Access-Control-Allow-Origin", "*");
-				PrintWriter out = response.getWriter();
 				JSONArray jsonArray = GitHubConnection.searchPositions(description, location);
-				out.print(jsonArray);
-				out.flush();
-				out.close();
+				RpcParser.parseOutput(response, jsonArray);
 				
 				DBConnection connection = new DBConnection();
 				for (int i = 0; i < jsonArray.length(); i++){
@@ -88,8 +75,6 @@ public class SearchPositions extends HttpServlet {
 			}
 		} catch (JSONException e) {
 			System.out.println("JSON format is wrong");
-			e.printStackTrace();
-		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}

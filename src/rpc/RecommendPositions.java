@@ -1,8 +1,6 @@
 package rpc;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.util.HashSet;
 import java.util.List;
 
@@ -34,7 +32,6 @@ public class RecommendPositions extends HttpServlet {
 	 */
 	public RecommendPositions() {
 		super();
-		// TODO Auto-generated constructor stub
 	}
 
 	/**
@@ -43,7 +40,6 @@ public class RecommendPositions extends HttpServlet {
 	 */
 	protected void doGet(HttpServletRequest request,
 			HttpServletResponse response) throws ServletException, IOException {
-		// TODO Auto-generated method stub
 	}
 
 	/**
@@ -52,21 +48,8 @@ public class RecommendPositions extends HttpServlet {
 	 */
 	protected void doPost(HttpServletRequest request,
 			HttpServletResponse response) throws ServletException, IOException {
-		// Make this utility class
-		StringBuffer jb = new StringBuffer();
-		String line = null;
 		try {
-			BufferedReader reader = request.getReader();
-			while ((line = reader.readLine()) != null) {
-				jb.append(line);
-			}
-			reader.close();
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-
-		try {
-			JSONObject input = new JSONObject(jb.toString());
+			JSONObject input = RpcParser.parseInput(request);
 			DBConnection connection = new DBConnection();
 			HashSet<JSONObject> positions = new HashSet<>();//not useful
 			if (input.has("user_id") && input.has("location")) {
@@ -85,14 +68,7 @@ public class RecommendPositions extends HttpServlet {
 					}
 				}
 			}
-			JSONArray array = new JSONArray(positions);
-			
-			response.setContentType("application/json");
-			response.addHeader("Access-Control-Allow-Origin", "*");
-			PrintWriter out = response.getWriter();
-			out.print(array);
-			out.flush();
-			out.close();
+			RpcParser.parseOutput(response, new JSONArray(positions));
 		} catch (JSONException e) {
 			e.printStackTrace();
 		}	

@@ -99,15 +99,6 @@ public class DBConnection {
 			executeUpdateStatement(sql);
 		}
 	}
-
-	public void unsetFavoritePositions(String userId, List<String> positionIds) {
-		String sql = "";
-		for (String positionId : positionIds) {
-			sql = "DELETE FROM shifu_favorite WHERE `user_id`=\"" + userId
-					+ "\" and `position_id` = \"" + positionId + "\"";
-			executeUpdateStatement(sql);
-		}
-	}
 	
 	private Set<String> getFavoritePositions(String userId) {
 		return executeQueryStatement(userId, "user_id", "position_id", "shifu_favorite");
@@ -147,8 +138,5 @@ public class DBConnection {
 			e.printStackTrace();
 		}
 		return keywords;
-	}
-
-	public static void main(String[] args) {
 	}
 }
